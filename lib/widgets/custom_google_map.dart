@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
 import 'package:payment/models/place_model.dart';
 import 'dart:ui' as ui;
 
@@ -12,35 +13,40 @@ class CustomGoogleMap extends StatefulWidget {
 }
 
 class _CustomGoogleMapState extends State<CustomGoogleMap> {
-  Set<Marker> markers = {};
+  // Set<Marker> markers = {};
   late CameraPosition initialCameraPosition;
+  late Location location;
   @override
   void initState() {
     initialCameraPosition = CameraPosition(
-      zoom: 16,
+      zoom: 15,
       target: LatLng(31.416825645438436, 31.813648140971143),
     );
-    // TODO: implement initState
-    initMarker();
+    location = Location();
+    checkAndRequestLocationService();
+    // initMarker();
+    // initPolylines();
+    // initPolyGones();
+    // initCircle();
     super.initState();
   }
 
   late GoogleMapController mapController;
-  @override
-  void dispose() {
-    mapController.dispose();
-    // TODO: implement dispose
-    super.dispose();
-  }
 
+  // Set<Polyline> polylines = {};
+  // Set<Polygon> polygons = {};
+  // Set<Circle> circles = {};
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         GoogleMap(
+          // circles: circles,
+          // polygons: polygons,
+          // polylines: polylines,
           zoomControlsEnabled: false,
-          zoomGesturesEnabled: true,
-          markers: markers,
+
+          // markers: markers,
           onMapCreated: (controller) {
             mapController = controller;
             initMapStyle();
@@ -81,26 +87,111 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     mapController.setMapStyle(mapStyleNieght);
   }
 
-  void initMarker() async {
-    var icon =await BitmapDescriptor.fromAssetImage(
-      ImageConfiguration(),
-      "assets/images/location.png",
-    );
-    var markersSet =
-        places
-            .map(
-              (placeModel) => Marker(
-                icon: icon,
-                markerId: MarkerId(placeModel.id.toString()),
-                position: placeModel.latLng,
-                infoWindow: InfoWindow(title: placeModel.name),
-              ),
-            )
-            .toSet();
+  void checkAndRequestLocationService() async {
+    var isEnabled = await location.serviceEnabled();
+    if (!isEnabled) {
+      isEnabled = await location.requestService();
+      if (!isEnabled) {
+        // Show a dialog or a snackbar to inform the user that location services are disabled
+      }
+    }
 
-    markers.addAll(markersSet);
-    setState(() {});
+    checkAndRequestLocationPermission();
   }
+
+  void checkAndRequestLocationPermission() async {
+    var permissionStatus = await location.hasPermission();
+    if (permissionStatus == PermissionStatus.denied) {
+      permissionStatus = await location.requestPermission();
+      if (permissionStatus != PermissionStatus.granted) {
+        // show a dialog or a snackbar to inform the user that location permission is denied and cannot be granted or used untill it changed from settings
+      }
+    }
+  }
+
+  // void initMarker() async {
+  //   var icon = await BitmapDescriptor.fromAssetImage(
+  //     ImageConfiguration(),
+  //     "assets/images/location.png",
+  //   );
+  //   var markersSet =
+  //       places
+  //           .map(
+  //             (placeModel) => Marker(
+  //               icon: icon,
+  //               markerId: MarkerId(placeModel.id.toString()),
+  //               position: placeModel.latLng,
+  //               infoWindow: InfoWindow(title: placeModel.name),
+  //             ),
+  //           )
+  //           .toSet();
+
+  //   markers.addAll(markersSet);
+  //   setState(() {});
+  // }
+
+  // void initPolylines() {
+  //   var pollyLine1 = Polyline(
+  //     polylineId: PolylineId("1"),
+  //     width: 5,
+  //     zIndex: 1,
+  //     points: [
+  //       LatLng(31.410427253157703, 31.81228622613421),
+  //       LatLng(31.419583607961293, 31.811000896017262),
+  //       LatLng(31.421185831480784, 31.80897315255716),
+  //       LatLng(31.425110461888085, 31.80520918176499),
+  //     ],
+  //   );
+
+  //   var pollyLine2 = Polyline(
+  //     polylineId: PolylineId("2"),
+  //     color: Colors.red,
+  //     patterns: [PatternItem.dot],
+  //     zIndex: 2,
+  //     startCap: Cap.roundCap,
+  //     width: 5,
+  //     points: [
+  //       LatLng(31.42083593018314, 31.821016572394768),
+  //       LatLng(31.420180764479618, 31.79840740084362),
+  //     ],
+  //   );
+  //   polylines.add(pollyLine1);
+  //   polylines.add(pollyLine2);
+  // }
+
+  // void initPolyGones() {
+  //   Polygon polygon = Polygon(
+  //     holes: [
+  //       [
+  //         LatLng(31.41840136519584, 31.81310453975973),
+  //         LatLng(31.419260665959488, 31.81391971730803),
+  //         LatLng(31.418483217532554, 31.81207361323655),
+  //       ],
+  //     ],
+  //     polygonId: PolygonId("1"),
+  //     fillColor: Colors.green.withOpacity(0.5),
+  //     strokeWidth: 2,
+
+  //     points: [
+  //       LatLng(31.41551646098277, 31.81483064230651),
+  //       LatLng(31.41952659505581, 31.81562197951934),
+  //       LatLng(31.418871959837418, 31.811114610976247),
+  //     ],
+  //   );
+  //   polygons.add(polygon);
+  // }
+
+  // void initCircle() {
+  //   Circle circle = Circle(
+  //     circleId: CircleId("1"),
+  //     center: LatLng(31.412684149344845, 31.80885469003949),
+  //     radius: 1000,
+  //     fillColor: Colors.red.withOpacity(0.5),
+  //     strokeWidth: 2,
+  //     strokeColor: Colors.black,
+  //   );
+  //   circles.add(circle);
+  // }
   // // used ony when icon is retrieved from api
   //   Future<Uint8List> getImageFromRawData(String image, double width) async {
   //     var imageData = await rootBundle.load(image);
