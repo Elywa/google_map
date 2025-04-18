@@ -34,6 +34,7 @@ class LocationService {
   }
 
   void getRealTimeLocationData(void Function(LocationData)? onData) {
+    location.changeSettings(distanceFilter: 2);
     location.onLocationChanged.listen(onData);
   }
 }

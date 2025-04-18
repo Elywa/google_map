@@ -4,6 +4,8 @@ import 'package:location/location.dart';
 
 import 'dart:ui' as ui;
 
+import 'package:payment/utils/location_service.dart';
+
 class CustomGoogleMap extends StatefulWidget {
   const CustomGoogleMap({super.key});
 
@@ -15,15 +17,15 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
   Set<Marker> markers = {};
   late CameraPosition initialCameraPosition;
   GoogleMapController? mapController;
-
-  late Location location;
+  late LocationService locationService;
+  bool isFirstTime = true;
   @override
   void initState() {
     initialCameraPosition = CameraPosition(
-      zoom: 15,
+      zoom: 1,
       target: LatLng(31.416825645438436, 31.813648140971143),
     );
-    location = Location();
+    locationService = LocationService();
     updateMyLocation();
     // initMarker();
     // initPolylines();
@@ -86,66 +88,42 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     mapController!.setMapStyle(mapStyleNieght);
   }
 
-  // Get Location Methods
-
-  // First Method to check if location service is enabled or not
-
-  Future<void> checkAndRequestLocationService() async {
-    var isEnabled = await location.serviceEnabled();
-    if (!isEnabled) {
-      isEnabled = await location.requestService();
-      if (!isEnabled) {
-        // Show a dialog or a snackbar to inform the user that location services are disabled
-      }
-    }
-  }
-
-  // Second Method to check if location permission is granted or not
-
-  Future<bool> checkAndRequestLocationPermission() async {
-    var permissionStatus = await location.hasPermission();
-    if (permissionStatus == PermissionStatus.deniedForever) {
-      return false;
-    }
-    if (permissionStatus == PermissionStatus.denied) {
-      permissionStatus = await location.requestPermission();
-      if (permissionStatus != PermissionStatus.granted) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  // Third Method to get the location data
-  void getLocationData() {
-    location.changeSettings(distanceFilter: 2);
-
-    location.onLocationChanged.listen((locationData) {
-      // Handle location updates here
-
-      var cameraPosition = CameraPosition(
-        target: LatLng(locationData.latitude!, locationData.longitude!),
-        zoom: 15,
-      );
-      Marker myLocationMarker = Marker(
-        markerId: MarkerId("my Location Marker"),
-        position: LatLng(locationData.latitude!, locationData.longitude!),
-      );
-      markers.add(myLocationMarker);
-      setState(() {});
-      mapController?.animateCamera(
-        CameraUpdate.newCameraPosition(cameraPosition),
-      );
-    });
-  }
-
   // Fourth Method to get the current location
   void updateMyLocation() async {
-    await checkAndRequestLocationService();
-    var hasPermission = await checkAndRequestLocationPermission();
+    await locationService.checkAndRequestLocationService();
+    var hasPermission =
+        await locationService.checkAndRequestLocationPermission();
     if (hasPermission) {
-      getLocationData();
+      locationService.getRealTimeLocationData((locationData) {
+        updateMarkerCurrentPosition(locationData);
+        updateMyCamera(locationData);
+      });
     }
+  }
+
+  void updateMyCamera(LocationData locationData) {
+    if (isFirstTime) {
+      var newCameraPosition = CameraPosition(
+        zoom: 17,
+        target: LatLng(locationData.latitude!, locationData.longitude!),
+      );
+      mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(newCameraPosition),
+      );
+      isFirstTime = false;
+    } else {
+      var newLatLng = LatLng(locationData.latitude!, locationData.longitude!);
+      mapController?.animateCamera(CameraUpdate.newLatLng(newLatLng));
+    }
+  }
+
+  void updateMarkerCurrentPosition(LocationData locationData) {
+    Marker myLocationMarker = Marker(
+      markerId: MarkerId("my Location Marker"),
+      position: LatLng(locationData.latitude!, locationData.longitude!),
+    );
+    markers.add(myLocationMarker);
+    setState(() {});
   }
 
   // void initMarker() async {
