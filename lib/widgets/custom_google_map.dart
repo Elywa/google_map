@@ -12,8 +12,10 @@ class CustomGoogleMap extends StatefulWidget {
 }
 
 class _CustomGoogleMapState extends State<CustomGoogleMap> {
-  // Set<Marker> markers = {};
+  Set<Marker> markers = {};
   late CameraPosition initialCameraPosition;
+  GoogleMapController? mapController;
+
   late Location location;
   @override
   void initState() {
@@ -22,15 +24,13 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
       target: LatLng(31.416825645438436, 31.813648140971143),
     );
     location = Location();
-    checkAndRequestLocationService();
+    updateMyLocation();
     // initMarker();
     // initPolylines();
     // initPolyGones();
     // initCircle();
     super.initState();
   }
-
-  late GoogleMapController mapController;
 
   // Set<Polyline> polylines = {};
   // Set<Polygon> polygons = {};
@@ -44,8 +44,8 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
           // polygons: polygons,
           // polylines: polylines,
           zoomControlsEnabled: false,
-
-          // markers: markers,
+          zoomGesturesEnabled: true,
+          markers: markers,
           onMapCreated: (controller) {
             mapController = controller;
             initMapStyle();
@@ -83,7 +83,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     var mapStyleNieght = await DefaultAssetBundle.of(
       context,
     ).loadString('assets/map_styles/nieght_map_style.json');
-    mapController.setMapStyle(mapStyleNieght);
+    mapController!.setMapStyle(mapStyleNieght);
   }
 
   // Get Location Methods
@@ -104,7 +104,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
 
   Future<bool> checkAndRequestLocationPermission() async {
     var permissionStatus = await location.hasPermission();
-    if(permissionStatus == PermissionStatus.deniedForever){
+    if (permissionStatus == PermissionStatus.deniedForever) {
       return false;
     }
     if (permissionStatus == PermissionStatus.denied) {
@@ -118,18 +118,34 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
 
   // Third Method to get the location data
   void getLocationData() {
+    location.changeSettings(distanceFilter: 2);
+
     location.onLocationChanged.listen((locationData) {
       // Handle location updates here
+
+      var cameraPosition = CameraPosition(
+        target: LatLng(locationData.latitude!, locationData.longitude!),
+        zoom: 15,
+      );
+      Marker myLocationMarker = Marker(
+        markerId: MarkerId("my Location Marker"),
+        position: LatLng(locationData.latitude!, locationData.longitude!),
+      );
+      markers.add(myLocationMarker);
+      setState(() {});
+      mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(cameraPosition),
+      );
     });
   }
 
   // Fourth Method to get the current location
   void updateMyLocation() async {
     await checkAndRequestLocationService();
-  var hasPermission =   await checkAndRequestLocationPermission();
-      if(hasPermission){
-            getLocationData();
-      }
+    var hasPermission = await checkAndRequestLocationPermission();
+    if (hasPermission) {
+      getLocationData();
+    }
   }
 
   // void initMarker() async {
