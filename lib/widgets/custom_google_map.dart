@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
-import 'package:payment/models/place_model.dart';
+
 import 'dart:ui' as ui;
 
 class CustomGoogleMap extends StatefulWidget {
@@ -87,7 +86,11 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     mapController.setMapStyle(mapStyleNieght);
   }
 
-  void checkAndRequestLocationService() async {
+  // Get Location Methods
+
+  // First Method to check if location service is enabled or not
+
+  Future<void> checkAndRequestLocationService() async {
     var isEnabled = await location.serviceEnabled();
     if (!isEnabled) {
       isEnabled = await location.requestService();
@@ -95,18 +98,38 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
         // Show a dialog or a snackbar to inform the user that location services are disabled
       }
     }
-
-    checkAndRequestLocationPermission();
   }
 
-  void checkAndRequestLocationPermission() async {
+  // Second Method to check if location permission is granted or not
+
+  Future<bool> checkAndRequestLocationPermission() async {
     var permissionStatus = await location.hasPermission();
+    if(permissionStatus == PermissionStatus.deniedForever){
+      return false;
+    }
     if (permissionStatus == PermissionStatus.denied) {
       permissionStatus = await location.requestPermission();
       if (permissionStatus != PermissionStatus.granted) {
-        // show a dialog or a snackbar to inform the user that location permission is denied and cannot be granted or used untill it changed from settings
+        return false;
       }
     }
+    return true;
+  }
+
+  // Third Method to get the location data
+  void getLocationData() {
+    location.onLocationChanged.listen((locationData) {
+      // Handle location updates here
+    });
+  }
+
+  // Fourth Method to get the current location
+  void updateMyLocation() async {
+    await checkAndRequestLocationService();
+  var hasPermission =   await checkAndRequestLocationPermission();
+      if(hasPermission){
+            getLocationData();
+      }
   }
 
   // void initMarker() async {
